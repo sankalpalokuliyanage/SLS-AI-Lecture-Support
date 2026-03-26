@@ -180,31 +180,24 @@
 
         // --- 3. TRANSLATION ENGINE ---
         async function sendToTranslate(text) {
-            if (!text.trim()) return;
-            loader.style.display = 'block';
+    if (!text.trim()) return;
+    loader.style.display = 'block';
 
-            try {
-                // CORS මඟහැරීමට Content-Type හෙඩරය නොමැතිව යැවීම
-                const response = await fetch(MODEL_URL, {
-                    method: "POST",
-                    headers: { "Authorization": HF_TOKEN },
-                    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
-                });
-                
-                const result = await response.json();
-                
-                if (result && result[0] && result[0].generated_text) {
-                    const translation = result[0].generated_text;
-                    labelEn.innerText = translation;
-                    logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
-                    logBox.scrollTop = logBox.scrollHeight;
-                } else if (result.estimated_time) {
-                    labelEn.innerText = "Starting AI Engine... (" + Math.round(result.estimated_time) + "s)";
-                }
-            } catch (err) {
-                console.error("AI Error:", err);
-            } finally { loader.style.display = 'none'; }
-        }
+    const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
+
+    try {
+        const response = await fetch(MODEL_URL, {
+            method: "POST",
+            // Authorization හෙඩර් එක ඉවත් කර ඇත (Model එක Public නම් පමණි)
+            body: JSON.stringify({ inputs: text })
+        });
+        
+        const result = await response.json();
+        // ... ඉතිරි කේතය ...
+    } catch (err) {
+        console.error("AI Error:", err);
+    }
+}
     </script>
 </body>
 </html>
