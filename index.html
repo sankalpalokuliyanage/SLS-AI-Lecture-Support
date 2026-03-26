@@ -300,29 +300,44 @@
         }
 
         async function sendToTranslate(text) {
-            if (!text.trim()) return;
-            loader.style.display = 'block';
+    if (!text.trim()) return;
+    loader.style.display = 'block';
 
-            try {
-                const response = await fetch(MODEL_URL, {
-                    method: "POST",
-                    headers: { "Authorization": HF_TOKEN, "Content-Type": "application/json" },
-                    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
-                });
+    const HF_TOKEN = "Bearer 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"; // ඔබේ Token එක
+    const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
 
-                const result = await response.json();
-                if (result && result[0] && result[0].generated_text) {
-                    const translation = result[0].generated_text;
-                    labelEn.innerText = translation;
-                    logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
-                    logBox.scrollTop = logBox.scrollHeight;
-                }
-            } catch (err) {
-                console.error("AI Error:", err);
-            } finally {
-                loader.style.display = 'none';
-            }
+    try {
+        // වැදගත්: අපි Content-Type එක නොදමා යැවීමෙන් Preflight (OPTIONS) මඟහරිනවා
+        const response = await fetch(MODEL_URL, {
+            method: "POST",
+            headers: { 
+                "Authorization": HF_TOKEN
+                // මෙතැනින් Content-Type ඉවත් කරන්න
+            },
+            body: JSON.stringify({ 
+                inputs: text,
+                options: { wait_for_model: true } 
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result && result[0] && result[0].generated_text) {
+            const translation = result[0].generated_text;
+            labelEn.innerText = translation;
+            logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
+            logBox.scrollTop = logBox.scrollHeight;
+        } else if (result.error) {
+             console.error("API Error:", result.error);
+             // Model එක load වෙනවා නම් පොඩි වෙලාවක් ඉන්න කියන්න
+             if(result.estimated_time) labelEn.innerText = "AI Engine is starting... (Estimated: " + Math.round(result.estimated_time) + "s)";
         }
+    } catch (err) {
+        console.error("AI Error:", err);
+    } finally {
+        loader.style.display = 'none';
+    }
+}
     </script>
 </body>
 
