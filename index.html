@@ -13,7 +13,7 @@
             --sidebar-bg: #050a14;
             --main-bg: #0d1117;
             --card-bg: #161b22;
-            --accent-gold: #f2994a;
+            --accent-gold: #9999;
             --accent-blue: #2f80ed;
             --text-white: #f0f6fc;
             --text-gray: #8b949e;
@@ -174,38 +174,46 @@
             document.getElementById('start-btn').innerHTML = '<i class="fa-solid fa-microphone"></i> START LISTENING';
         }
 
-       async function sendToTranslate(text) {
+async function sendToTranslate(text) {
     if (!text.trim()) return;
     loader.style.display = 'block';
 
+    const HF_TOKEN = "Bearer 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"; // ඔබේ Token එක
     const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
 
     try {
-        // --- මෙන්න මෙතැනයි වෙනස තියෙන්නේ ---
-        // අපි Headers කිසිවක් දාන්නේ නැහැ. එතකොට බ්‍රවුසරය CORS පරීක්ෂා කරන්නේ නැහැ.
         const response = await fetch(MODEL_URL, {
             method: "POST",
+            headers: { 
+                "Authorization": HF_TOKEN,
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ 
                 inputs: text,
                 options: { wait_for_model: true } 
             })
         });
-        
-        const result = await response.json();
-        
-        if (Array.isArray(result) && result[0].generated_text) {
-            const translation = result[0].generated_text;
-            labelEn.innerText = translation;
-            logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
-            logBox.scrollTop = logBox.scrollHeight;
-        } else if (result.estimated_time) {
-            labelEn.innerText = "AI Engine is starting... (" + Math.round(result.estimated_time) + "s)";
+
+        // Response එක JSON ද කියලා මුලින්ම බලමු
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            const result = await response.json();
+            
+            if (Array.isArray(result) && result[0].generated_text) {
+                labelEn.innerText = result[0].generated_text;
+                logBox.value += `[KO]: ${text}\n[EN]: ${result[0].generated_text}\n\n`;
+                logBox.scrollTop = logBox.scrollHeight;
+            } else if (result.error) {
+                labelEn.innerText = "AI Error: " + result.error;
+            }
         } else {
-            console.log("API Response:", result);
+            // JSON නෙවෙයි නම් (උදා: 410 HTML Page එකක් නම්)
+            const textResponse = await response.text();
+            console.error("Non-JSON response received:", textResponse);
+            labelEn.innerText = "API Endpoint error (410). Check Hugging Face Model Status.";
         }
     } catch (err) {
         console.error("AI Error:", err);
-        labelEn.innerText = "Connection error. Please check if model is Public.";
     } finally {
         loader.style.display = 'none';
     }
