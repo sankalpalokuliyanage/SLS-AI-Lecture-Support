@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SLS AI | V3.1 Fixed Engine</title>
+    <title>SLS AI | Final Production Engine</title>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,15 +13,16 @@
             --sidebar-bg: #050a14;
             --main-bg: #0d1117;
             --card-bg: #161b22;
-            --accent-gold: #9999;
+            --accent-gold: #f2994a;
             --accent-blue: #2f80ed;
             --text-white: #f0f6fc;
             --text-gray: #8b949e;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--main-bg); color: var(--text-white); display: flex; height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--main-bg); color: var(--text-white); display: flex; height: 100vh; overflow: hidden; }
 
+        /* --- SIDEBAR --- */
         .sidebar {
             width: 320px;
             background-color: var(--sidebar-bg);
@@ -46,6 +47,7 @@
 
         .nav-btn.stop { background: #eb5757; }
 
+        /* --- MAIN VIEW --- */
         .main-content { flex: 1; padding: 30px; display: flex; gap: 20px; }
 
         .display-card {
@@ -54,13 +56,14 @@
             flex: 1; display: flex; flex-direction: column;
             justify-content: center; align-items: center; padding: 40px;
             box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+            text-align: center;
         }
 
         .mic-active { color: #eb5757 !important; animation: pulse 1.2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        .label-ko { font-size: 1.2rem; color: #58a6ff; margin-bottom: 15px; opacity: 0.8; }
-        .label-en { font-size: 2.8rem; font-weight: 700; text-align: center; line-height: 1.2; letter-spacing: -1px; }
+        .label-ko { font-size: 1.3rem; color: #58a6ff; margin-bottom: 15px; min-height: 1.5em; font-weight: 300; }
+        .label-en { font-size: 2.8rem; font-weight: 700; line-height: 1.2; letter-spacing: -1px; min-height: 1.5em; }
 
         .log-panel {
             width: 400px; background-color: var(--sidebar-bg);
@@ -81,7 +84,7 @@
 <body>
     <div class="sidebar">
         <img src="images/logo.png" class="sidebar-logo">
-        <div class="v3-badge">V3.1 STABLE ENGINE</div>
+        <div class="v3-badge">V3.1 FINAL STABLE</div>
         
         <label style="font-size: 0.7rem; color: var(--text-gray); margin-bottom: 5px; letter-spacing: 1px;">SESSION TITLE</label>
         <input type="text" id="lecture-title" 
@@ -103,11 +106,11 @@
 
     <div class="main-content">
         <div class="display-card">
-            <div id="mic-indicator" style="font-size: 3.5rem; color: #30363d; margin-bottom: 20px;">
-                <i class="fa-solid fa-wave-square"></i>
+            <div id="mic-indicator" style="font-size: 4rem; color: #30363d; margin-bottom: 25px;">
+                <i class="fa-solid fa-microphone-lines"></i>
             </div>
-            <div class="label-ko" id="label-ko">දේශනය ආරම්භ වන තෙක් බලන් සිටී...</div>
-            <div class="label-en" id="label-en">Waiting for Speech Input...</div>
+            <div class="label-ko" id="label-ko">강의가 시작되기를 기다리는 중...</div>
+            <div class="label-en" id="label-en">Waiting for Speech...</div>
             <div id="loader" class="loader">
                 <i class="fa-solid fa-bolt-lightning fa-fade"></i> SLS AI IS TRANSLATING...
             </div>
@@ -123,9 +126,11 @@
     </div>
 
     <script>
-        const HF_TOKEN = "Bearer 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";
+        // --- 1. CONFIG (ඔබේ Model නම මෙහි දමන්න) ---
         const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
+        const HF_TOKEN = "Bearer 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";
 
+        // --- 2. SPEECH RECOGNITION ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         let isRunning = false;
@@ -163,7 +168,7 @@
                 recognition.start();
                 isRunning = true;
                 micIndicator.classList.add('mic-active');
-                document.getElementById('start-btn').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> LISTENING...';
+                document.getElementById('start-btn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> LISTENING...';
             } else { stopEverything(); }
         }
 
@@ -174,50 +179,41 @@
             document.getElementById('start-btn').innerHTML = '<i class="fa-solid fa-microphone"></i> START LISTENING';
         }
 
-async function sendToTranslate(text) {
-    if (!text.trim()) return;
-    loader.style.display = 'block';
+        // --- 3. CORE TRANSLATION ENGINE ---
+        async function sendToTranslate(text) {
+            if (!text.trim()) return;
+            loader.style.display = 'block';
 
-    const HF_TOKEN = "Bearer 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"; // ඔබේ Token එක
-    const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
-
-    try {
-        const response = await fetch(MODEL_URL, {
-            method: "POST",
-            headers: { 
-                "Authorization": HF_TOKEN,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ 
-                inputs: text,
-                options: { wait_for_model: true } 
-            })
-        });
-
-        // Response එක JSON ද කියලා මුලින්ම බලමු
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            const result = await response.json();
-            
-            if (Array.isArray(result) && result[0].generated_text) {
-                labelEn.innerText = result[0].generated_text;
-                logBox.value += `[KO]: ${text}\n[EN]: ${result[0].generated_text}\n\n`;
-                logBox.scrollTop = logBox.scrollHeight;
-            } else if (result.error) {
-                labelEn.innerText = "AI Error: " + result.error;
+            try {
+                const response = await fetch(MODEL_URL, {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": HF_TOKEN,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
+                });
+                
+                const result = await response.json();
+                
+                // Response එක Array එකක් නම්
+                if (Array.isArray(result) && result[0].generated_text) {
+                    const translation = result[0].generated_text;
+                    labelEn.innerText = translation;
+                    logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
+                    logBox.scrollTop = logBox.scrollHeight;
+                } 
+                // Model එක තාම Load වෙනවා නම්
+                else if (result.estimated_time) {
+                    labelEn.innerText = "Engine Warming Up... (" + Math.round(result.estimated_time) + "s)";
+                }
+            } catch (err) {
+                console.error("AI Error:", err);
+                labelEn.innerText = "AI Connection issue. Check CORS.";
+            } finally {
+                loader.style.display = 'none';
             }
-        } else {
-            // JSON නෙවෙයි නම් (උදා: 410 HTML Page එකක් නම්)
-            const textResponse = await response.text();
-            console.error("Non-JSON response received:", textResponse);
-            labelEn.innerText = "API Endpoint error (410). Check Hugging Face Model Status.";
         }
-    } catch (err) {
-        console.error("AI Error:", err);
-    } finally {
-        loader.style.display = 'none';
-    }
-}
     </script>
 </body>
 </html>
