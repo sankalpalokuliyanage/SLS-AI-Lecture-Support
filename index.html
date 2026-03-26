@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SLS AI | V3.0 Pure Engine</title>
+    <title>SLS AI | V3.1 Fixed Engine</title>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,7 +13,7 @@
             --sidebar-bg: #050a14;
             --main-bg: #0d1117;
             --card-bg: #161b22;
-            --accent-gold: #000; /* Update එක හඳුනාගන්න රත්තරන් පැහැය */
+            --accent-gold: #f2994a;
             --accent-blue: #2f80ed;
             --text-white: #f0f6fc;
             --text-gray: #8b949e;
@@ -22,7 +22,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background-color: var(--main-bg); color: var(--text-white); display: flex; height: 100vh; }
 
-        /* --- SIDEBAR --- */
         .sidebar {
             width: 320px;
             background-color: var(--sidebar-bg);
@@ -47,7 +46,6 @@
 
         .nav-btn.stop { background: #eb5757; }
 
-        /* --- MAIN VIEW --- */
         .main-content { flex: 1; padding: 30px; display: flex; gap: 20px; }
 
         .display-card {
@@ -83,7 +81,7 @@
 <body>
     <div class="sidebar">
         <img src="images/logo.png" class="sidebar-logo">
-        <div class="v3-badge">V3.0 PURE ENGINE (NO FIREBASE)</div>
+        <div class="v3-badge">V3.1 STABLE ENGINE</div>
         
         <label style="font-size: 0.7rem; color: var(--text-gray); margin-bottom: 5px; letter-spacing: 1px;">SESSION TITLE</label>
         <input type="text" id="lecture-title" 
@@ -125,11 +123,9 @@
     </div>
 
     <script>
-        // --- 1. AI ENGINE CONFIG ---
         const HF_TOKEN = "Bearer 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";
         const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
 
-        // --- 2. SPEECH RECOGNITION SETUP ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         let isRunning = false;
@@ -178,26 +174,40 @@
             document.getElementById('start-btn').innerHTML = '<i class="fa-solid fa-microphone"></i> START LISTENING';
         }
 
-        // --- 3. TRANSLATION ENGINE ---
         async function sendToTranslate(text) {
-    if (!text.trim()) return;
-    loader.style.display = 'block';
+            if (!text.trim()) return;
+            loader.style.display = 'block';
 
-    const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
-
-    try {
-        const response = await fetch(MODEL_URL, {
-            method: "POST",
-            // Authorization හෙඩර් එක ඉවත් කර ඇත (Model එක Public නම් පමණි)
-            body: JSON.stringify({ inputs: text })
-        });
-        
-        const result = await response.json();
-        // ... ඉතිරි කේතය ...
-    } catch (err) {
-        console.error("AI Error:", err);
-    }
-}
+            try {
+                const response = await fetch(MODEL_URL, {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": HF_TOKEN,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ 
+                        inputs: text,
+                        options: { wait_for_model: true } 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result && result[0] && result[0].generated_text) {
+                    const translation = result[0].generated_text;
+                    labelEn.innerText = translation;
+                    logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
+                    logBox.scrollTop = logBox.scrollHeight;
+                } else if (result.estimated_time) {
+                    labelEn.innerText = "Model Loading... (" + Math.round(result.estimated_time) + "s)";
+                }
+            } catch (err) {
+                console.error("AI Error:", err);
+                labelEn.innerText = "Error connecting to AI Engine.";
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
