@@ -13,7 +13,7 @@
             --sidebar-bg: #050a14;
             --main-bg: #0d1117;
             --card-bg: #161b22;
-            --accent-gold: #f2994a;
+            --accent-gold: #9999;
             --accent-blue: #2f80ed;
             --text-white: #f0f6fc;
             --text-gray: #8b949e;
@@ -175,39 +175,47 @@
         }
 
         async function sendToTranslate(text) {
-            if (!text.trim()) return;
-            loader.style.display = 'block';
+    if (!text.trim()) return;
+    loader.style.display = 'block';
 
-            try {
-                const response = await fetch(MODEL_URL, {
-                    method: "POST",
-                    headers: { 
-                        "Authorization": HF_TOKEN,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ 
-                        inputs: text,
-                        options: { wait_for_model: true } 
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result && result[0] && result[0].generated_text) {
-                    const translation = result[0].generated_text;
-                    labelEn.innerText = translation;
-                    logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
-                    logBox.scrollTop = logBox.scrollHeight;
-                } else if (result.estimated_time) {
-                    labelEn.innerText = "Model Loading... (" + Math.round(result.estimated_time) + "s)";
-                }
-            } catch (err) {
-                console.error("AI Error:", err);
-                labelEn.innerText = "Error connecting to AI Engine.";
-            } finally {
-                loader.style.display = 'none';
-            }
+    const HF_TOKEN = "Bearer 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";
+    const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
+    
+    // CORS Proxy එකක් භාවිතා කිරීම (මෙය ඉතා වැදගත්)
+    const PROXY_URL = "https://cors-anywhere.herokuapp.com/"; 
+
+    try {
+        // පළමුව Proxy එක නැතිව උත්සාහ කරමු
+        const response = await fetch(MODEL_URL, {
+            method: "POST",
+            headers: { 
+                "Authorization": HF_TOKEN,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ 
+                inputs: text,
+                options: { wait_for_model: true } 
+            })
+        });
+        
+        // Error එකක් ආවොත් (CORS වැනි), Proxy එක හරහා උත්සාහ කිරීමට catch එකට යයි
+        const result = await response.json();
+        
+        if (result && result[0] && result[0].generated_text) {
+            const translation = result[0].generated_text;
+            labelEn.innerText = translation;
+            logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
+            logBox.scrollTop = logBox.scrollHeight;
+        } else if (result.estimated_time) {
+            labelEn.innerText = "Starting AI Engine... (" + Math.round(result.estimated_time) + "s)";
         }
+    } catch (err) {
+        console.error("Direct fetch failed, trying with Proxy extension/manual fix...", err);
+        labelEn.innerText = "CORS Blocked. Please enable 'Allow CORS' Extension in Chrome.";
+    } finally {
+        loader.style.display = 'none';
+    }
+}
     </script>
 </body>
 </html>
