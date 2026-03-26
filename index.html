@@ -180,40 +180,44 @@
         }
 
         // --- 3. CORE TRANSLATION ENGINE ---
-        async function sendToTranslate(text) {
-            if (!text.trim()) return;
-            loader.style.display = 'block';
+ async function sendToTranslate(text) {
+    if (!text.trim()) return;
+    loader.style.display = 'block';
 
-            try {
-                const response = await fetch(MODEL_URL, {
-                    method: "POST",
-                    headers: { 
-                        "Authorization": HF_TOKEN,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
-                });
-                
-                const result = await response.json();
-                
-                // Response එක Array එකක් නම්
-                if (Array.isArray(result) && result[0].generated_text) {
-                    const translation = result[0].generated_text;
-                    labelEn.innerText = translation;
-                    logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
-                    logBox.scrollTop = logBox.scrollHeight;
-                } 
-                // Model එක තාම Load වෙනවා නම්
-                else if (result.estimated_time) {
-                    labelEn.innerText = "Engine Warming Up... (" + Math.round(result.estimated_time) + "s)";
-                }
-            } catch (err) {
-                console.error("AI Error:", err);
-                labelEn.innerText = "AI Connection issue. Check CORS.";
-            } finally {
-                loader.style.display = 'none';
-            }
+    const MODEL_URL = "https://api-inference.huggingface.co/models/sankalpa1998/final_ko_en_v2_model";
+    const HF_TOKEN = "Bearer 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";
+
+    try {
+        const response = await fetch(MODEL_URL, {
+            method: "POST",
+            headers: { 
+                "Authorization": HF_TOKEN,
+                // වැදගත්: Content-Type එක 'text/plain' ලෙස යෙදීමෙන් Preflight (OPTIONS) මඟහරියි
+                "Content-Type": "text/plain" 
+            },
+            body: JSON.stringify({ 
+                inputs: text,
+                options: { wait_for_model: true } 
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (Array.isArray(result) && result[0].generated_text) {
+            const translation = result[0].generated_text;
+            labelEn.innerText = translation;
+            logBox.value += `[KO]: ${text}\n[EN]: ${translation}\n\n`;
+            logBox.scrollTop = logBox.scrollHeight;
+        } else if (result.estimated_time) {
+            labelEn.innerText = "Engine Warming Up... (" + Math.round(result.estimated_time) + "s)";
         }
+    } catch (err) {
+        console.error("AI Error:", err);
+        labelEn.innerText = "CORS Policy Blocked. Try Chrome Extension.";
+    } finally {
+        loader.style.display = 'none';
+    }
+}
     </script>
 </body>
 </html>
